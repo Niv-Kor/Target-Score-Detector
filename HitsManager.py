@@ -9,6 +9,16 @@ verified_hits = []
 
 class Hit:
     def __init__(self, x, y, score, bullseyeRelation):
+        '''
+        {Number} x - x coordinate of the hit
+        {Number} y - y coordinate of the hit
+        {Number} score - The hit's score
+        {Tuple} bullseysRelation - (
+                                      {Number} current x coordinate of the bull'seye point,
+                                      {Number} current y coordinate of the bull'seye point
+                                   )
+        '''
+
         self.point = (x, y)
         self.score = score
         self.reputation = 1
@@ -18,12 +28,28 @@ class Hit:
         self.iter_mark = False
     
     def increase_rep(self):
+        '''
+        Increase the hit's reputation.
+        '''
+
         self.reputation += 1
         
     def decrease_rep(self):
+        '''
+        Decrease the hit's reputation.
+        '''
+
         self.reputation -= 1
         
     def isVerified(self, repScore):
+        '''
+        Parameters:
+            {Number} repScore - The minimum reputation needed to verify a hit
+
+        Returns:
+            {Boolean} True if the hit is considered verified.
+        '''
+
         return self.reputation >= repScore
 
 def create_scoreboard(hits, scale, ringsAmount, innerDiam):
@@ -79,27 +105,59 @@ def create_scoreboard(hits, scale, ringsAmount, innerDiam):
     return scoreboard
 
 def is_verified_hit(point, distanceTolerance):
-    return type(get_verified_hit(point, distanceTolerance)) != type(None)
+    '''
+    Parameters:
+        {Tuple} point - (
+                           {Number} x coordinate of the point,
+                           {Number} y coordinate of the point
+                        )
+        {Number} distanceTolerance - Amount of pixels around the point that can be ignored
+                                     in order to consider another point as the same one
+
+    Returns:
+        {Boolean} True if the point is of a verified hit.
+    '''
+
+    return type(get_hit(VERIFIED, point, distanceTolerance)) != type(None)
 
 def is_candidate_hit(point, distanceTolerance):
-    return type(get_candidate_hit(point, distanceTolerance)) != type(None)
+    '''
+    Parameters:
+        {Tuple} point - (
+                           {Number} x coordinate of the point,
+                           {Number} y coordinate of the point
+                        )
+        {Number} distanceTolerance - Amount of pixels around the point that can be ignored
+                                     in order to consider another point as the same one
 
-def get_verified_hit(point, distanceTolerance):
-    compatible_hits = []
+    Returns:
+        {Boolean} True if the point is of a known hit that's yet to be verified.
+    '''
     
-    for hit in verified_hits:
-        if geo2D.euclidean_dist(point, hit.point) <= distanceTolerance:
-            compatible_hits.append(hit)
-            
-    if len(compatible_hits) > 0:
-        return compatible_hits[0]
-    else:
-        return None;
+    return type(get_hit(CANDIDATE, point, distanceTolerance)) != type(None)
 
-def get_candidate_hit(point, distanceTolerance):
+def get_hit(group, point, distanceTolerance):
+    '''
+    Parameters:
+        {Number} group - The group to which the hit belongs
+                            [HitsManager constant (VERIFIED, CANDIDATE)]
+        {Tuple} point - (
+                        {Number} x coordinate of the point,
+                        {Number} y coordinate of the point
+                        )
+        {Number} distanceTolerance - Amount of pixels around the point that can be ignored
+                                     in order to consider another point as the same one
+
+    Returns:
+        {HitsManager.Hit} The hit that's closest to the given point,
+                            considering the tolarance distance around it.
+                            If no hit is found, this function returns None.
+    '''
+
+    hits_list = get_hits(group)
     compatible_hits = []
-    
-    for hit in candidate_hits:
+
+    for hit in hits_list:
         if geo2D.euclidean_dist(point, hit.point) <= distanceTolerance:
             compatible_hits.append(hit)
             
@@ -108,7 +166,15 @@ def get_candidate_hit(point, distanceTolerance):
     else:
         return None
 
-def eliminateVerifiedRedundancy(distanceTolerance):
+def eliminate_verified_redundancy(distanceTolerance):
+    '''
+    Find duplicate verified hits and eliminate them.
+
+    Parameters:
+        {Number} distanceTolerance - Amount of pixels around a point that can be ignored
+                                     in order to consider another point as the same one
+    '''
+
     if len(verified_hits) <= 1:
         return
     
@@ -156,8 +222,20 @@ def eliminateVerifiedRedundancy(distanceTolerance):
         
         j_leap += 1
 
-def sort_hit(hit, distanceTolerance, maxReputation):
-    candidate = get_candidate_hit(hit.point, distanceTolerance)
+def sort_hit(hit, distanceTolerance, minVerifiedReputation):
+    '''
+    Sort a hit and place it in either of the lists.
+    Increase the reputation of a hit that's already a candidate,
+    or add a hit as a candidate if it's not already known.
+
+    Parameters:
+        {HitsManager.Hit} hit - The hit to sort
+        {Number} distanceTolerance - Amount of pixels around a point that can be ignored
+                                     in order to consider another point as the same one
+        {Number} minVerifiedReputation - The minimum reputation needed to verify a hit
+    '''
+
+    candidate = get_hit(CANDIDATE, hit.point, distanceTolerance)
 
     # the hit is a known candidate
     if type(candidate) != type(None):
@@ -165,12 +243,12 @@ def sort_hit(hit, distanceTolerance, maxReputation):
         candidate.iter_mark = True
 
         # candidate is now eligable for verification
-        if candidate.isVerified(maxReputation):
+        if candidate.isVerified(minVerifiedReputation):
             verified_hits.append(candidate)
             candidate_hits.remove(candidate)
             
             # find duplicate verified hits and eliminate them
-            eliminateVerifiedRedundancy(distanceTolerance)
+            eliminate_verified_redundancy(distanceTolerance)
 
     # new candidate
     else:
@@ -178,6 +256,11 @@ def sort_hit(hit, distanceTolerance, maxReputation):
         hit.iter_mark = True
 
 def discharge_hits():
+    '''
+    Lower the reputation of hits that were not detected during the last iteration.
+    Hits with reputation under 1 are disqualified and removed.
+    '''
+
     for candidate in candidate_hits:
         # candidate is not present during the current iteration
         if not candidate.iter_mark:
@@ -192,6 +275,16 @@ def discharge_hits():
         candidate.iter_mark = False
 
 def shift_hits(bullseye):
+    '''
+    Shift all hits according to the new position of the bull'seye point in the target.
+
+    Parameters:
+        {Tuple} bullseye - (
+                              {Number} current x coordinate of the bull'seye point in the target,
+                              {Number} current y coordinate of the bull'seye point in the target
+                           )
+    '''
+
     all_hits = candidate_hits + verified_hits
     
     for h in all_hits:
@@ -206,6 +299,15 @@ def shift_hits(bullseye):
         h.point = (new_x,new_y)
 
 def get_hits(group):
+    '''
+    Parameters:
+        {Number} group - The group to which the hit belongs
+                         [HitsManager constant (VERIFIED, CANDIDATE)]
+
+    Returns:
+        {List} The requested group of hits.
+    '''
+
     switcher = {
         0: candidate_hits,
         1: verified_hits

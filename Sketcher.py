@@ -2,10 +2,22 @@ import cv2
 
 class Sketcher:
     def __init__(self, measureUnit, measureName):
+        '''
+        {Number} measureUnit - Amount of pixels in one distance unit
+        {String} measureName - The name of the measure unit
+        '''
+
         self.measure_unit = measureUnit
         self.measure_name = measureName
 
-    def draw_meta_data_block(self, img):
+    def draw_data_block(self, img):
+        '''
+        Draw the rectangle on which the data of the analysis is written.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+        '''
+
         img_h, img_w, _ = img.shape
         
         rect_0_start = (int(img_w * .5), int(img_h * .85))
@@ -33,6 +45,21 @@ class Sketcher:
         cv2.rectangle(img, rect_5_start, rect_5_end, (0x0,204,0xff), -1)
 
     def mark_hits(self, img, hits, foreground, diam, withOutline, withScore):
+        '''
+        Mark hits on the target itself.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+            {List} hits - [
+                             {HitsManager.Hit} A hit on the target
+                             ...
+                          ]
+            {Tuple} foreground - The color of the cirle [BGR]
+            {Number} diam - The circle's diameter
+            {Boolean} withOutline - True to add an outline to the circle
+            {Boolean} withScore - True to add a score notation on top of the circle
+        '''
+
         outline = (0x0,0x0,0x0)
         
         for hit in hits:
@@ -49,9 +76,26 @@ class Sketcher:
                 cv2.putText(img, score_string, (x,y - 20), cv2.FONT_HERSHEY_PLAIN, 5, (0xff,0xff,0xff), thickness=5)
 
     def draw_grouping(self, img, contour):
+        '''
+        Mark hits on the target itself.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+            {Numpy.array} contour - The external contour of the group
+        '''
+
         cv2.drawContours(img, contour, -1, (214,215,97), 2)
 
     def type_arrows_amount(self, img, amount, dataColor):
+        '''
+        Write the 'Arrows shot' segment, referencing the amount of arrows on the target.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+            {Number} amount - The amount of arrows currently on the target
+            {Tuple} dataColor - The color of the value text [BGR]
+        '''
+
         amount = str(amount)
         img_h, img_w, _ = img.shape
         cv2.putText(img, 'Arrows shot: ', (int(img_w * .52), int(img_h * .905)),
@@ -61,6 +105,15 @@ class Sketcher:
                     cv2.FONT_HERSHEY_SIMPLEX, 1.4, dataColor, 4)
 
     def type_grouping_diameter(self, img, diameter, dataColor):
+        '''
+        Write the 'Grouping' segment, referencing the diameter of the grouping contour.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+            {Number} diameter - The diameter of the grouping
+            {Tuple} dataColor - The color of the value text [BGR]
+        '''
+
         diameter = str(round(diameter * self.measure_unit, 1))
         img_h, img_w, _ = img.shape
         cv2.putText(img, 'Grouping: ', (int(img_w * .77), int(img_h * .905)),
@@ -70,6 +123,17 @@ class Sketcher:
                     cv2.FONT_HERSHEY_SIMPLEX, 1.4, dataColor, 4)
 
     def type_total_score(self, img, totalScore, achievableScore, dataColor):
+        '''
+        Write the 'Grouping' segment, referencing the diameter of the grouping contour.
+
+        Parameters:
+            {Numpy.array} img - The img on which to draw
+            {Number} totalScore - The total calculated score
+            {Number} achievableScore - The maximum score that could have been achieved with
+                                       the current amount of arrows on the target
+            {Tuple} dataColor - The color of the value text [BGR]
+        '''
+
         totalScore = str(totalScore)
         achievableScore = str(achievableScore)
         score_digits = len(totalScore)
