@@ -4,6 +4,21 @@ import numpy as np
 import cv2
 
 def create_group_polygon(img, hits):
+    '''
+    Calculate the polygon that contours a group of hits.
+
+    Parameters:
+        {Numpy.array} img - The image in which the group appears
+        {List} hits - [
+                         {HitsManager.Hit} A hit in the group
+                         ...
+                      ]
+
+    Returns:
+        {Numpy.array} A strict contour around the group of hits,
+                      or None if the quantity of the hits is too low to form a group.
+    '''
+
     blank_img = np.zeros(img.shape, dtype=img.dtype)
     blank_img = cv2.cvtColor(blank_img, cv2.COLOR_RGB2GRAY)
     
@@ -23,6 +38,16 @@ def create_group_polygon(img, hits):
         return None
 
 def measure_grouping_diameter(contour):
+    '''
+    Calculate the diameter of a grouping contour.
+
+    Parameters:
+        {Numpy.array} contour - The contour to measure
+
+    Returns:
+        {Number} The diameter of the grouping contour.
+    '''
+
     # find two furthest points in the polygon
     contPts = [(contour[m][0][0],contour[m][0][1]) for m in range(len(contour))]
     point_A = contPts[0] # random point

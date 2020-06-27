@@ -4,6 +4,17 @@ import numpy as np
 import cv2
 
 def subtract_background(query, subtrahend):
+    '''
+    Subtract two images, so only the difference between them is left.
+
+    Parameters:
+        {Numpy.array} query - The image from which the background is subtracted [RGB]
+        {Numpy.array} subtrahend - The background to subtract from the query [RGB]
+
+    Returns:
+        {Numpy.array} The difference image.
+    '''
+
     # convert to grayscale
     gray_query = cv2.cvtColor(query, cv2.COLOR_RGB2GRAY)
     gray_subtrahend = cv2.cvtColor(subtrahend, cv2.COLOR_RGB2GRAY)
@@ -21,6 +32,27 @@ def subtract_background(query, subtrahend):
     return diff
 
 def emphasize_lines(img, distances, estimatedRadius):
+    '''
+    Emphasize all of the straight lines in the image and get rid of unnecessary noise.
+
+    Parameters:
+        {Numpy.array} img - The image to edit
+        {list} distances - [
+                              {List} [
+                                        {Number} x coordinate of the point,
+                                        {Number} y coordinate of the point,
+                                        {Number} The distance of the point from the bull'seye point
+                                     ]
+                              ...
+                           ]
+        {Number} estimatedRadius - A rough estimation of the target's radius,
+                                   that will be used if for some reason it cannot be calculated on the fly.
+
+    Returns:
+        {Number} The target's current radius [px].
+        {Numpy.array} An image with the lines emphasized.
+    '''
+
     # find the target's outer ring
     circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 20,
                                param1=50, param2=30, minRadius=0,
@@ -53,7 +85,31 @@ def emphasize_lines(img, distances, estimatedRadius):
                 
     return radius, img_copy
 
-def reproduce_projectile_contours(img, distances, bullseye, radius):
+def reproduce_proj_contours(img, distances, bullseye, radius):
+    '''
+    Extend the emphasized lines outwards the target circle in order to restore
+    the shape of the projectiles that might has been broken during the process.
+
+    Parameters:
+        {Numpy.array} img - The image to edit
+        {list} distances - [
+                              {List} [
+                                        {Number} x coordinate of the point,
+                                        {Number} y coordinate of the point,
+                                        {Number} The distance of the point from the bull'seye point
+                                     ]
+                              ...
+                           ]
+        {Tuple} bullseye - (
+                              {Number} x coordinate of the bull'seye point,
+                              {Number} y coordinate of the bull'seye point
+                           )
+        {Number} radius - The radius of the target
+
+    Returns:
+        {List} A list of the projectiles' contours.
+    '''
+
     # detect the unconvex contours (true projectile contours)
     contours = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[-2:]
     rect_contours = cntr.filter_convex_contours(contours[0])
@@ -70,6 +126,38 @@ def reproduce_projectile_contours(img, distances, bullseye, radius):
     return cv2.findContours(blank_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)[-2:][0]
 
 def find_suspect_hits(contours, vertices, scale):
+    '''
+    Find all suspect points in the target that might be hits.
+
+    Parameters:
+        {List} contours - [
+                             {Numpy.array} A projectile contour
+                             ...
+                          ]
+        {Tuple} A, B, C, D, E vertices (respectively) of the target.
+                E.g: A ----------- B
+                     |             |
+                     |      E      |
+                     |             |
+                     D ----------- C
+                (
+                   {tuple} (
+                              {Number} x coordinates of point A,
+                              {Number} y coordinates of point A
+                           ),
+                   ...,
+                )
+        {tuple} scale - (
+                            {Number} The average size of the horizontal edges divided by
+                                     the average size of the vertical edges (width / height ratio),
+                            {Number} The average size of the vertical edges divided by
+                                     the average size of the horizontal edges (height / width ratio),
+                            {Number} The estimated size of the homography transformation
+                                     divided by the estimated size of the target model
+                                     (transformed size / actual size ratio)
+                        )
+    '''
+
     bullseye = vertices[5]
     res = []
     

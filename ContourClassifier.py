@@ -2,8 +2,32 @@ import Geometry2D as geo2D
 import numpy as np
 import cv2
 
-def contour_distances_from(contourPts, point):
-    pts = [[p[0], p[1], 0] for p in contourPts]
+def contour_distances_from(contour, point):
+    '''
+    Find the distance of each pixel in a contour from a specified point.
+
+    Parameters:
+        {List} contours - [
+                             {Numpy.array} A contours from which to extract the distances
+                             ...
+                          ]
+        {Tuple} point - (
+                           {Number} x coordinate of the destination point,
+                           {Number} y coordinate of the destination point,
+                        )
+    
+    Returns:
+        {List} [
+                  {List} [
+                            {Number} x coordinate of the contour's point,
+                            {Number} y coordinate of the contour's point,
+                            {Number} The distance from this point to the given parameter point
+                         ]
+                         ...
+               ]
+    '''
+
+    pts = [[p[0], p[1], 0] for p in contour]
     
     for i in range(len(pts)):
         p = pts[i]
@@ -13,6 +37,21 @@ def contour_distances_from(contourPts, point):
     return sorted(pts, key=lambda x: x[2])
 
 def extend_contour_line(img, contour, bullseye, length):
+    '''
+    Extend the straight contour line owtwards the target, to try and reproduce the shape and length of the actual projectile.
+    This helps joining multiple contours, that refer to the same projectile, in a row.
+    This function modifies the argument image.
+
+    Parameters:
+        {Numpy.array} img - The image in which the the contour appears
+        {Numpy.array} conour - The contour to extend
+        {Tuple} bullseye - (
+                              {Number} x coordinate of the bull'seye point,
+                              {Number} y coordinate of the bull'seye point
+                           )
+        {Number} length - The extension's length (outwards the target)
+    '''
+
     def normalize(vector):
         square_sum = 0
         for x in vector:
@@ -60,7 +99,29 @@ def extend_contour_line(img, contour, bullseye, length):
     # extend the line
     cv2.line(img, front_point, end_point, (0xff,0x0,0xff), 4)
 
-def is_contour_rect(cont, A, B, samples):
+def is_contour_rect(contour, A, B, samples):
+    '''
+    Check if a contour is a rectangular or is it convexed (moon-shaped).
+
+    Parameters:
+        {Numpy.array} cont - The contour to check
+        {tuple} A - Point from one edge of the contour
+                    (
+                        {Number} x coordinate of the point
+                        {Number} y coordinate of the point
+                    )
+        {tuple} B - Point from the other edge of the contour
+                    (
+                        {Number} x coordinate of the point
+                        {Number} y coordinate of the point
+                    )
+        {Number} samples - Amount of samples to take.
+                           The more samples, the more precise and reliable is the result.
+
+    Returns:
+        {Boolean} True if the contour is more of a rectangle than a convex shape.
+    '''
+
     x_distance = B[0] - A[0]
     y_distance = B[1] - A[1]
     x_step = x_distance / samples
@@ -76,12 +137,25 @@ def is_contour_rect(cont, A, B, samples):
 
     for p in points:
         # check if point is outside the contour
-        if cv2.pointPolygonTest(cont, p, False) < 0:
+        if cv2.pointPolygonTest(contour, p, False) < 0:
             return False
 
     return True
 
 def filter_convex_contours(contours):
+    '''
+    Take a list of contours and filter out all the contours with a convex shape.
+
+    Parameters:
+        {List} contours - [
+                             {Numpy.array} A contour to test
+                             ...
+                          ]
+
+    Returns:
+        {List} The same list, but without the convex shaped contours.
+    '''
+
     filtered = []
 
     for cont in contours:

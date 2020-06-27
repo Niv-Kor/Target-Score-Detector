@@ -26,13 +26,13 @@ def zero_pad_as(img, paddingShape):
 
     Parameters:
         {Numpy.array} img - The image to which the zero padding should be applied
-        {tuple} paddingShape - (
+        {Tuple} paddingShape - (
                                   {Number} The desired new height of the image,
                                   {Number} The desired new width of the image
                                )
 
     Returns:
-        {tuple} (
+        {Tuple} (
                    {Numpy.array} An array consisting 5 of the small image's anchor points
                                  (in the center of the larger padded image).
                                  E.g: A ----------- B
@@ -109,20 +109,21 @@ def calc_vertices_and_edges(transform):
         {Numpy.array} transform - The prespective transform product of an image
 
     Returns:
-        {tuple} (
-                   {tuple} A, B, C, D, E vertices (respectively) of the transformation
+        {Tuple} (
+                   {Tuple} A, B, C, D, E vertices (respectively) of the transformation.
                            E.g: A ----------- B
                                 |             |
                                 |      E      |
                                 |             |
                                 D ----------- C
-
-                           {tuple} (
-                                      {Number} x coordinates of point A,
-                                      {Number} y coordinates of point A
-                                   ),
-                                   ...,
-                   {tuple} (
+                (
+                   {Tuple} (
+                              {Number} x coordinates of point A,
+                              {Number} y coordinates of point A
+                           ),
+                   ...,
+                ),
+                   {Tuple} (
                               {Number} The length of AB edge,
                               {Number} The length of BC edge,
                               {Number} The length of CD edge,
@@ -136,10 +137,10 @@ def calc_vertices_and_edges(transform):
     B = vertices[1]
     C = vertices[2]
     D = vertices[3]
-    ab = (((A[0] - B[0]) ** 2) + ((A[1] - B[1]) ** 2)) ** .5
-    bc = (((B[0] - C[0]) ** 2) + ((B[1] - C[1]) ** 2)) ** .5
-    cd = (((C[0] - D[0]) ** 2) + ((C[1] - D[1]) ** 2)) ** .5
-    da = (((D[0] - A[0]) ** 2) + ((D[1] - A[1]) ** 2)) ** .5
+    ab = euclidean_dist(A, B)
+    bc = euclidean_dist(B, C)
+    cd = euclidean_dist(C, D)
+    da = euclidean_dist(D, A)
 
     return vertices, (ab, bc, cd, da)
 

@@ -91,8 +91,8 @@ class VideoAnalyzer:
                     circle_radius, emphasized_lines = visuals.emphasize_lines(sub_target, pixel_distances,
                                                                     estimated_warped_radius)
                     
-                    proj_contours = visuals.reproduce_projectile_contours(emphasized_lines, pixel_distances,
-                                                                warped_vertices[5], circle_radius)
+                    proj_contours = visuals.reproduce_proj_contours(emphasized_lines, pixel_distances,
+                                                                    warped_vertices[5], circle_radius)
                     
                     suspect_hits = visuals.find_suspect_hits(proj_contours, warped_vertices, scale)
 
